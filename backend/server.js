@@ -58,8 +58,8 @@ app.post('/api/install', async (req, res) => {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: 'Package name is required' });
     try {
-        // -y for non-interactive
-        await runCommand(`sudo apt-get install -y ${name}`);
+        // Run update first to ensure fresh indexes, then install -y for non-interactive
+        await runCommand(`sudo apt-get update && sudo apt-get install -y ${name}`);
         res.json({ message: `Package ${name} installed successfully` });
     } catch (err) {
         res.status(500).json({ error: `Failed to install ${name}`, details: err.stderr });

@@ -11,12 +11,13 @@ FROM node:18-slim
 WORKDIR /app
 
 # Install system dependencies
-# Note: ubuntu-release-upgrader-core is Ubuntu-specific.
-# We use 'apt' and 'dpkg' which are standard on Debian.
+# Note: ca-certificates is required for HTTPS repositories
 RUN apt-get update && apt-get install -y \
     apt \
     dpkg \
     sudo \
+    ca-certificates \
+    gnupg \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy backend
