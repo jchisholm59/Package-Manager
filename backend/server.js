@@ -71,9 +71,9 @@ app.post('/api/install', async (req, res) => {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: 'Package name is required' });
     try {
-        // The "Trixie Compatibility" Command:
-        // 1. Force gpgv fallback to avoid Sequoia (sqv) permission issues
-        // 2. Disable sandbox for root-level access to mounted keys
+        // The "Insecure Compatibility" Command:
+        // 1. Force gpgv fallback
+        // 2. Allow unauthenticated/insecure to bypass Sequoia/sqv crashes
         // 3. Mask interactive triggers
         const env = 'DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true APT_LISTCHANGES_FRONTEND=none';
         const opts = [
@@ -82,7 +82,9 @@ app.post('/api/install', async (req, res) => {
             '-o Dpkg::Options::="--force-all"',
             '-o Dpkg::Pre-Install-Pkgs::=""',
             '-o APT::Sandbox::User=root',
-            '-o Apt::Key::gpgvcommand=/usr/bin/gpgv' // FORCE TRADITIONAL GPG
+            '-o Apt::Key::gpgvcommand=/usr/bin/gpgv',
+            '--allow-unauthenticated',
+            '--allow-insecure-repositories'
         ].join(' ');
 
         const cmd = `${env} apt-get update ${opts} || true; ${env} apt-get install -y ${opts} ${name} < /dev/null`;

@@ -3,6 +3,7 @@ version: '3.8'
 services:
   package-manager:
     build: .
+    user: "0:0"
     ports:
       - "8300:8300"
     privileged: true
