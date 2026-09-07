@@ -118,10 +118,14 @@ app.post('/api/fix', async (req, res) => {
 // GET /api/release-check - Check for release upgrade
 app.get('/api/release-check', async (req, res) => {
     try {
-        const output = await runCommand('do-release-upgrade -c');
-        res.json({ status: output.trim() });
+        // Try to detect if we are on Ubuntu or Debian
+        const osInfo = await runCommand('cat /etc/os-release');
+        const isUbuntu = osInfo.toLowerCase().includes('ubuntu');
+
+        const cmd = isUbuntu ? 'do-release-upgrade -c' : 'apt-get dist-upgrade -s';
+        const output = await runCommand(cmd);
+        res.json({ status: isUbuntu ? output.trim() : 'Debian simulation run: ' + output.split('\n')[0] });
     } catch (err) {
-        // If no upgrade available, do-release-upgrade -c might exit with non-zero
         res.json({ status: 'No new release found or check failed', details: err.stderr });
     }
 });

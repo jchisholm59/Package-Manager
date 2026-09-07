@@ -11,11 +11,12 @@ FROM node:18-slim
 WORKDIR /app
 
 # Install system dependencies
+# Note: ubuntu-release-upgrader-core is Ubuntu-specific.
+# We use 'apt' and 'dpkg' which are standard on Debian.
 RUN apt-get update && apt-get install -y \
     apt \
     dpkg \
     sudo \
-    ubuntu-release-upgrader-core \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy backend
