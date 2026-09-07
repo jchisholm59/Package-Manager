@@ -19,7 +19,8 @@ import {
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-const API_BASE = 'http://localhost:8300/api';
+// Use a relative path so it works regardless of the host IP
+const API_BASE = '/api';
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
