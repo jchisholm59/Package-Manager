@@ -71,13 +71,16 @@ app.post('/api/install', async (req, res) => {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: 'Package name is required' });
     try {
-        // The "Trixie Compatibility" Command (Robust Version):
-        // We use -o configuration flags to avoid syntax clashes between update/install
-        const env = 'DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true APT_LISTCHANGES_FRONTEND=none';
+        // The "Trixie Absolute Isolation" Command:
+        // 1. Force extreme non-interactive environment for Perl, Debconf, and Apt
+        // 2. Disable triggers and listchanges entirely
+        // 3. Clear any pending dpkg configurations first
+        const env = 'DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true APT_LISTCHANGES_FRONTEND=none PERL_MM_USE_DEFAULT=1';
         const opts = [
             '-o Dpkg::Options::="--force-confdef"',
             '-o Dpkg::Options::="--force-confold"',
             '-o Dpkg::Options::="--force-all"',
+            '-o Dpkg::Options::="--no-triggers"', // Temporarily disable triggers
             '-o Dpkg::Pre-Install-Pkgs::=""',
             '-o APT::Sandbox::User=root',
             '-o Apt::Key::gpgvcommand=/usr/bin/gpgv',
@@ -86,7 +89,8 @@ app.post('/api/install', async (req, res) => {
             '--allow-unauthenticated'
         ].join(' ');
 
-        const cmd = `${env} apt-get update ${opts} || true; ${env} apt-get install -y ${opts} ${name} < /dev/null`;
+        // Clean up pending states, update, then install
+        const cmd = `${env} dpkg --configure -a || true; ${env} apt-get update ${opts} || true; ${env} apt-get install -y ${opts} ${name} < /dev/null`;
 
         await runCommand(cmd);
         res.json({ message: `Package ${name} installed successfully` });
