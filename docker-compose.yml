@@ -11,4 +11,5 @@ services:
       - /etc/apt:/etc/apt
       - /var/cache/apt:/var/cache/apt
       - /var/lib/apt:/var/lib/apt
+      - /usr/share/keyrings:/usr/share/keyrings
     restart: unless-stopped

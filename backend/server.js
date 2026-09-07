@@ -28,15 +28,20 @@ const runCommand = (command) => {
 // GET /api/packages - List installed packages
 app.get('/api/packages', async (req, res) => {
     try {
-        const output = await runCommand("dpkg-query -W -f='${Package}|${Version}|${Status}\\n'");
+        // Use a more robust format and handle empty output
+        const output = await runCommand("dpkg-query -W -f='${Package}|${Version}|${Status}\\n' || true");
+        if (!output || output.trim() === "") {
+            return res.json([]);
+        }
         const packages = output.trim().split('\n').map(line => {
             const parts = line.split('|');
             if (parts.length < 3) return null;
             const [name, version, status] = parts;
-            return { name, version, status };
+            return { name, version, status: status.trim() };
         }).filter(x => x);
         res.json(packages);
     } catch (err) {
+        console.error("List packages failed", err);
         res.status(500).json({ error: 'Failed to list packages', details: err.stderr || err.error?.message });
     }
 });
