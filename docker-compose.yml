@@ -10,13 +10,8 @@ services:
       - "8300:8300"
     privileged: true
     volumes:
-      - /var/lib/dpkg:/var/lib/dpkg
-      - /etc/apt/sources.list:/etc/apt/sources.list:ro
-      - /etc/apt/sources.list.d:/etc/apt/sources.list.d:ro
-      - /etc/apt/keyrings:/etc/apt/keyrings:ro
-      - /etc/apt/mirrors:/etc/apt/mirrors:ro
-      - /usr/share/keyrings:/usr/share/keyrings:ro
-      - /usr/local/share/keyrings:/usr/local/share/keyrings:ro
-      - /var/cache/apt:/var/cache/apt
-      - /var/lib/apt:/var/lib/apt
+      # Mount the entire host filesystem to /host
+      - /:/host
+      # We still need the host's run directory for socket communication
+      - /run:/run
     restart: unless-stopped
