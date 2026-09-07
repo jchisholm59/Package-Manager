@@ -110,7 +110,8 @@ app.post('/api/remove', async (req, res) => {
 // GET /api/updates - Check for upgradable packages
 app.get('/api/updates', async (req, res) => {
     try {
-        await runCommand('apt-get update');
+        const opts = '-o APT::Sandbox::User=root -o Apt::Key::gpgvcommand=/usr/bin/gpgv';
+        await runCommand(`apt-get update ${opts} || true`);
         const output = await runCommand('apt list --upgradable');
         const updates = output.split('\n').slice(1) // Skip "Listing..."
             .filter(line => line.trim())
@@ -128,7 +129,14 @@ app.get('/api/updates', async (req, res) => {
 app.post('/api/upgrade', async (req, res) => {
     try {
         const env = 'DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true APT_LISTCHANGES_FRONTEND=none';
-        const opts = '-o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -o Dpkg::Options::="--force-all"';
+        const opts = [
+            '-o Dpkg::Options::="--force-confdef"',
+            '-o Dpkg::Options::="--force-confold"',
+            '-o Dpkg::Options::="--force-all"',
+            '-o Dpkg::Pre-Install-Pkgs::=""',
+            '-o APT::Sandbox::User=root',
+            '-o Apt::Key::gpgvcommand=/usr/bin/gpgv'
+        ].join(' ');
         await runCommand(`${env} apt-get upgrade -y ${opts} < /dev/null`);
         res.json({ message: 'System upgraded successfully' });
     } catch (err) {
@@ -140,7 +148,14 @@ app.post('/api/upgrade', async (req, res) => {
 app.post('/api/fix', async (req, res) => {
     try {
         const env = 'DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true APT_LISTCHANGES_FRONTEND=none';
-        const opts = '-o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -o Dpkg::Options::="--force-all"';
+        const opts = [
+            '-o Dpkg::Options::="--force-confdef"',
+            '-o Dpkg::Options::="--force-confold"',
+            '-o Dpkg::Options::="--force-all"',
+            '-o Dpkg::Pre-Install-Pkgs::=""',
+            '-o APT::Sandbox::User=root',
+            '-o Apt::Key::gpgvcommand=/usr/bin/gpgv'
+        ].join(' ');
         await runCommand(`${env} apt-get install -f -y ${opts} < /dev/null`);
         res.json({ message: 'Broken dependencies fixed' });
     } catch (err) {

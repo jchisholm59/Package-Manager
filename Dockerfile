@@ -10,9 +10,23 @@ RUN npm run build
 FROM debian:testing-slim
 WORKDIR /app
 
-# Install system tools and Node.js from Debian Testing repos
-# This avoids the NodeSource script which can fail on "Testing" distros
-RUN apt-get update && apt-get install -y \
+# Set environment to non-interactive
+ENV DEBIAN_FRONTEND=noninteractive
+
+# 1. Update and install basic certificates/tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    sudo \
+    && rm -rf /var/lib/apt/lists/*
+
+# 2. Install Node.js directly from the official NodeSource
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+# 3. Install the specific system management tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
     apt \
     dpkg \
     apt-utils \
@@ -23,10 +37,6 @@ RUN apt-get update && apt-get install -y \
     libterm-readline-gnu-perl \
     procps \
     lsb-release \
-    nodejs \
-    npm \
-    sudo \
-    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Set up locales
