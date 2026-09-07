@@ -58,8 +58,8 @@ app.post('/api/install', async (req, res) => {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: 'Package name is required' });
     try {
-        // Use non-interactive flags and ignore apt-listchanges
-        const cmd = `export DEBIAN_FRONTEND=noninteractive; sudo apt-get update -y; sudo apt-get install -y -o DPkg::Options::="--force-confdef" -o DPkg::Options::="--force-confold" ${name}`;
+        // Use non-interactive flags, ignore apt-listchanges, and allow update to fail (e.g. GPG errors)
+        const cmd = `export DEBIAN_FRONTEND=noninteractive; export APT_LISTCHANGES_FRONTEND=none; sudo apt-get update || true; sudo apt-get install -y -o DPkg::Options::="--force-confdef" -o DPkg::Options::="--force-confold" ${name}`;
         await runCommand(cmd);
         res.json({ message: `Package ${name} installed successfully` });
     } catch (err) {
@@ -99,7 +99,7 @@ app.get('/api/updates', async (req, res) => {
 // POST /api/upgrade - Apply updates
 app.post('/api/upgrade', async (req, res) => {
     try {
-        await runCommand('export DEBIAN_FRONTEND=noninteractive; sudo apt-get upgrade -y -o DPkg::Options::="--force-confdef" -o DPkg::Options::="--force-confold"');
+        await runCommand('export DEBIAN_FRONTEND=noninteractive; export APT_LISTCHANGES_FRONTEND=none; sudo apt-get upgrade -y -o DPkg::Options::="--force-confdef" -o DPkg::Options::="--force-confold"');
         res.json({ message: 'System upgraded successfully' });
     } catch (err) {
         res.status(500).json({ error: 'Upgrade failed', details: err.stderr || err.error?.message });
@@ -109,7 +109,7 @@ app.post('/api/upgrade', async (req, res) => {
 // POST /api/fix - Fix broken installs
 app.post('/api/fix', async (req, res) => {
     try {
-        await runCommand('export DEBIAN_FRONTEND=noninteractive; sudo apt-get install -f -y -o DPkg::Options::="--force-confdef" -o DPkg::Options::="--force-confold"');
+        await runCommand('export DEBIAN_FRONTEND=noninteractive; export APT_LISTCHANGES_FRONTEND=none; sudo apt-get install -f -y -o DPkg::Options::="--force-confdef" -o DPkg::Options::="--force-confold"');
         res.json({ message: 'Broken dependencies fixed' });
     } catch (err) {
         res.status(500).json({ error: 'Fix failed', details: err.stderr || err.error?.message });
