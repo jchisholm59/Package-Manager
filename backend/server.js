@@ -28,17 +28,21 @@ const runCommand = (command) => {
 // GET /api/packages - List installed packages
 app.get('/api/packages', async (req, res) => {
     try {
-        // Use a more robust format and handle empty output
-        const output = await runCommand("dpkg-query -W -f='${Package}|${Version}|${Status}\\n' || true");
+        // Run with LC_ALL=C to ensure stable output format
+        const output = await runCommand("LC_ALL=C dpkg-query -W -f='${Package}|${Version}|${Status}\\n'");
         if (!output || output.trim() === "") {
+            console.log("No packages returned from dpkg-query");
             return res.json([]);
         }
         const packages = output.trim().split('\n').map(line => {
             const parts = line.split('|');
             if (parts.length < 3) return null;
             const [name, version, status] = parts;
+            // Only include packages that are actually installed (not "deinstall" or "purge")
+            if (!status.includes("installed")) return null;
             return { name, version, status: status.trim() };
         }).filter(x => x);
+        console.log(`Successfully listed ${packages.length} packages`);
         res.json(packages);
     } catch (err) {
         console.error("List packages failed", err);
@@ -67,10 +71,13 @@ app.post('/api/install', async (req, res) => {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: 'Package name is required' });
     try {
-        // Now that we've isolated the config, a standard non-interactive install should work
-        const env = 'DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true';
-        const opts = '-o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"';
-        const cmd = `${env} apt-get update || true; ${env} apt-get install -y ${opts} ${name} < /dev/null`;
+        // The "Ultimate" Compatibility Command:
+        // 1. Force noninteractive via ENV
+        // 2. Redirect stdin to /dev/null
+        // 3. Disable the sandbox user so it can read mounted host keys
+        const env = 'DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true APT_LISTCHANGES_FRONTEND=none';
+        const opts = '-o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -o Dpkg::Options::="--force-all" -o Dpkg::Pre-Install-Pkgs::="" -o APT::Sandbox::User=root';
+        const cmd = `${env} apt-get update -o APT::Sandbox::User=root || true; ${env} apt-get install -y ${opts} ${name} < /dev/null`;
 
         await runCommand(cmd);
         res.json({ message: `Package ${name} installed successfully` });
