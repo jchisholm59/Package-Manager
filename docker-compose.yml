@@ -1,7 +1,9 @@
 version: '3.8'
 
 services:
-  package-manager:
+  app:
+    container_name: debian-manager
+    image: debian-manager:latest
     build: .
     user: "0:0"
     ports:

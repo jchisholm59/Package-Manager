@@ -71,10 +71,8 @@ app.post('/api/install', async (req, res) => {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: 'Package name is required' });
     try {
-        // The "Insecure Compatibility" Command:
-        // 1. Force gpgv fallback
-        // 2. Allow unauthenticated/insecure to bypass Sequoia/sqv crashes
-        // 3. Mask interactive triggers
+        // The "Trixie Compatibility" Command (Robust Version):
+        // We use -o configuration flags to avoid syntax clashes between update/install
         const env = 'DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true APT_LISTCHANGES_FRONTEND=none';
         const opts = [
             '-o Dpkg::Options::="--force-confdef"',
@@ -83,8 +81,9 @@ app.post('/api/install', async (req, res) => {
             '-o Dpkg::Pre-Install-Pkgs::=""',
             '-o APT::Sandbox::User=root',
             '-o Apt::Key::gpgvcommand=/usr/bin/gpgv',
-            '--allow-unauthenticated',
-            '--allow-insecure-repositories'
+            '-o Acquire::AllowInsecureRepositories=true',
+            '-o Acquire::AllowDowngradeToInsecureRepositories=true',
+            '--allow-unauthenticated'
         ].join(' ');
 
         const cmd = `${env} apt-get update ${opts} || true; ${env} apt-get install -y ${opts} ${name} < /dev/null`;
@@ -137,7 +136,10 @@ app.post('/api/upgrade', async (req, res) => {
             '-o Dpkg::Options::="--force-all"',
             '-o Dpkg::Pre-Install-Pkgs::=""',
             '-o APT::Sandbox::User=root',
-            '-o Apt::Key::gpgvcommand=/usr/bin/gpgv'
+            '-o Apt::Key::gpgvcommand=/usr/bin/gpgv',
+            '-o Acquire::AllowInsecureRepositories=true',
+            '-o Acquire::AllowDowngradeToInsecureRepositories=true',
+            '--allow-unauthenticated'
         ].join(' ');
         await runCommand(`${env} apt-get upgrade -y ${opts} < /dev/null`);
         res.json({ message: 'System upgraded successfully' });
@@ -156,7 +158,10 @@ app.post('/api/fix', async (req, res) => {
             '-o Dpkg::Options::="--force-all"',
             '-o Dpkg::Pre-Install-Pkgs::=""',
             '-o APT::Sandbox::User=root',
-            '-o Apt::Key::gpgvcommand=/usr/bin/gpgv'
+            '-o Apt::Key::gpgvcommand=/usr/bin/gpgv',
+            '-o Acquire::AllowInsecureRepositories=true',
+            '-o Acquire::AllowDowngradeToInsecureRepositories=true',
+            '--allow-unauthenticated'
         ].join(' ');
         await runCommand(`${env} apt-get install -f -y ${opts} < /dev/null`);
         res.json({ message: 'Broken dependencies fixed' });
