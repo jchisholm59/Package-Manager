@@ -13,10 +13,13 @@ app.use(bodyParser.json());
 // Helper function to run shell commands
 const runCommand = (command) => {
     // Prefix all system-modifying commands with chroot to the host filesystem
-    const chrootCommand = `chroot /host /bin/bash -c "${command.replace(/"/g, '\\"')}"`;
+    // We escape $ to prevent bash from trying to interpolate ${Package} etc.
+    const escapedCommand = command.replace(/\$/g, '\\$').replace(/"/g, '\\"');
+    const chrootCommand = `chroot /host /bin/bash -c "${escapedCommand}"`;
+
     console.log(`Executing on host: ${command}`);
     return new Promise((resolve, reject) => {
-        exec(chrootCommand, (error, stdout, stderr) => {
+        exec(chrootCommand, { maxBuffer: 1024 * 1024 * 10 }, (error, stdout, stderr) => {
             if (error) {
                 console.error(`Error: ${error.message}`);
                 reject({ error, stderr });
