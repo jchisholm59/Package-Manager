@@ -8,8 +8,9 @@ services:
     privileged: true # Required to run apt commands inside container effectively
     volumes:
       - /var/lib/dpkg:/var/lib/dpkg
-      - /etc/apt:/etc/apt
+      - /etc/apt/sources.list:/etc/apt/sources.list:ro
+      - /etc/apt/sources.list.d:/etc/apt/sources.list.d:ro
       - /var/cache/apt:/var/cache/apt
       - /var/lib/apt:/var/lib/apt
-      - /usr/share/keyrings:/usr/share/keyrings
+      - /usr/share/keyrings:/usr/share/keyrings:ro
     restart: unless-stopped
