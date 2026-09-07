@@ -78,9 +78,13 @@ Use PM2 to run the application as a background service on your Linux host.
 
 The core application logic is compatible with all Debian-based distributions (Ubuntu, Debian, Linux Mint, etc.). However, when running in **Docker Host Management Mode**, the container's OS should ideally match the host's OS version to ensure system library and database compatibility.
 
-### Adapting for other hosts:
-- **Change the Base Image**: In the [Dockerfile](file:///Users/jim/Package-Manager/Dockerfile), update the `FROM debian:testing-slim` line to match your host (e.g., `FROM ubuntu:24.04` or `FROM debian:bookworm-slim`).
-- **Adjust Volumes**: In [docker-compose.yml](file:///Users/jim/Package-Manager/docker-compose.yml), you may need to modify the volume mounts based on where your host stores its keys and mirror lists. Standard Ubuntu installations typically only require `/etc/apt/sources.list`, `/etc/apt/sources.list.d`, and `/usr/share/keyrings`.
+### Adapting for other hosts (Ubuntu, Mint, etc.):
+
+The current setup uses **Chroot Mode**, which maps your host's root (`/`) to `/host` inside the container. This makes it highly portable:
+
+1.  **Change the Base Image**: In the [Dockerfile](file:///Users/jim/Package-Manager/Dockerfile), update the `FROM debian:testing-slim` line to match your host (e.g., `FROM ubuntu:24.04` or `FROM debian:bookworm-slim`).
+2.  **Verify Mounts**: The `docker-compose.yml` mounts `- /:/host` and `- /run:/run`. This is universal for most modern Debian/Ubuntu systems. If your host uses a non-standard location for its package database, you may need to adjust the `chroot` logic in `server.js`.
+3.  **Permissions**: Ensure the Docker container runs with `privileged: true` and `user: "0:0"` to allow it to execute the host's binaries.
 
 ## 📜 License
 MIT
