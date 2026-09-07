@@ -1,0 +1,9 @@
+version: '3.8'
+
+services:
+  package-manager:
+    build: .
+    ports:
+      - "8300:8300"
+    privileged: true # Required to run apt commands inside container effectively
+    restart: unless-stopped
