@@ -58,11 +58,12 @@ app.post('/api/install', async (req, res) => {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: 'Package name is required' });
     try {
-        // Run update first to ensure fresh indexes, then install -y for non-interactive
-        await runCommand(`sudo apt-get update && sudo apt-get install -y ${name}`);
+        // Use non-interactive flags and ignore apt-listchanges
+        const cmd = `export DEBIAN_FRONTEND=noninteractive; sudo apt-get update -y; sudo apt-get install -y -o DPkg::Options::="--force-confdef" -o DPkg::Options::="--force-confold" ${name}`;
+        await runCommand(cmd);
         res.json({ message: `Package ${name} installed successfully` });
     } catch (err) {
-        res.status(500).json({ error: `Failed to install ${name}`, details: err.stderr });
+        res.status(500).json({ error: `Failed to install ${name}`, details: err.stderr || err.error?.message });
     }
 });
 
@@ -98,20 +99,20 @@ app.get('/api/updates', async (req, res) => {
 // POST /api/upgrade - Apply updates
 app.post('/api/upgrade', async (req, res) => {
     try {
-        await runCommand('sudo apt-get upgrade -y');
+        await runCommand('export DEBIAN_FRONTEND=noninteractive; sudo apt-get upgrade -y -o DPkg::Options::="--force-confdef" -o DPkg::Options::="--force-confold"');
         res.json({ message: 'System upgraded successfully' });
     } catch (err) {
-        res.status(500).json({ error: 'Upgrade failed', details: err.stderr });
+        res.status(500).json({ error: 'Upgrade failed', details: err.stderr || err.error?.message });
     }
 });
 
 // POST /api/fix - Fix broken installs
 app.post('/api/fix', async (req, res) => {
     try {
-        await runCommand('sudo apt-get install -f -y');
+        await runCommand('export DEBIAN_FRONTEND=noninteractive; sudo apt-get install -f -y -o DPkg::Options::="--force-confdef" -o DPkg::Options::="--force-confold"');
         res.json({ message: 'Broken dependencies fixed' });
     } catch (err) {
-        res.status(500).json({ error: 'Fix failed', details: err.stderr });
+        res.status(500).json({ error: 'Fix failed', details: err.stderr || err.error?.message });
     }
 });
 

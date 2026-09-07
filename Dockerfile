@@ -12,12 +12,14 @@ WORKDIR /app
 
 # Install system dependencies
 # Note: ca-certificates is required for HTTPS repositories
+# Note: apt-listchanges is often required when mounting host /etc/apt
 RUN apt-get update && apt-get install -y \
     apt \
     dpkg \
     sudo \
     ca-certificates \
     gnupg \
+    apt-listchanges \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy backend
