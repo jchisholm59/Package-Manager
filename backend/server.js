@@ -12,9 +12,11 @@ app.use(bodyParser.json());
 
 // Helper function to run shell commands
 const runCommand = (command) => {
+    console.log(`Executing: ${command}`);
     return new Promise((resolve, reject) => {
         exec(command, (error, stdout, stderr) => {
             if (error) {
+                console.error(`Error: ${error.message}`);
                 reject({ error, stderr });
                 return;
             }
@@ -28,12 +30,14 @@ app.get('/api/packages', async (req, res) => {
     try {
         const output = await runCommand("dpkg-query -W -f='${Package}|${Version}|${Status}\\n'");
         const packages = output.trim().split('\n').map(line => {
-            const [name, version, status] = line.split('|');
+            const parts = line.split('|');
+            if (parts.length < 3) return null;
+            const [name, version, status] = parts;
             return { name, version, status };
-        });
+        }).filter(x => x);
         res.json(packages);
     } catch (err) {
-        res.status(500).json({ error: 'Failed to list packages', details: err.stderr });
+        res.status(500).json({ error: 'Failed to list packages', details: err.stderr || err.error?.message });
     }
 });
 
@@ -89,7 +93,7 @@ app.post('/api/remove', async (req, res) => {
 // GET /api/updates - Check for upgradable packages
 app.get('/api/updates', async (req, res) => {
     try {
-        await runCommand('sudo apt-get update');
+        await runCommand('apt-get update');
         const output = await runCommand('apt list --upgradable');
         const updates = output.split('\n').slice(1) // Skip "Listing..."
             .filter(line => line.trim())
@@ -99,16 +103,16 @@ app.get('/api/updates', async (req, res) => {
             }).filter(x => x);
         res.json(updates);
     } catch (err) {
-        res.status(500).json({ error: 'Failed to check for updates', details: err.stderr });
+        res.status(500).json({ error: 'Failed to check for updates', details: err.stderr || err.error?.message });
     }
 });
 
 // POST /api/upgrade - Apply updates
 app.post('/api/upgrade', async (req, res) => {
     try {
-        const env = 'export DEBIAN_FRONTEND=noninteractive; export DEBCONF_NONINTERACTIVE_SEEN=true; export APT_LISTCHANGES_FRONTEND=none;';
-        const dpkgOpts = '-o DPkg::Options::="--force-confdef" -o DPkg::Options::="--force-confold" -o DPkg::Options::="--force-all"';
-        await runCommand(`${env} sudo apt-get upgrade -y ${dpkgOpts}`);
+        const env = 'DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true APT_LISTCHANGES_FRONTEND=none';
+        const opts = '-o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -o Dpkg::Options::="--force-all"';
+        await runCommand(`${env} apt-get upgrade -y ${opts} < /dev/null`);
         res.json({ message: 'System upgraded successfully' });
     } catch (err) {
         res.status(500).json({ error: 'Upgrade failed', details: err.stderr || err.error?.message });
@@ -118,9 +122,9 @@ app.post('/api/upgrade', async (req, res) => {
 // POST /api/fix - Fix broken installs
 app.post('/api/fix', async (req, res) => {
     try {
-        const env = 'export DEBIAN_FRONTEND=noninteractive; export DEBCONF_NONINTERACTIVE_SEEN=true; export APT_LISTCHANGES_FRONTEND=none;';
-        const dpkgOpts = '-o DPkg::Options::="--force-confdef" -o DPkg::Options::="--force-confold" -o DPkg::Options::="--force-all"';
-        await runCommand(`${env} sudo apt-get install -f -y ${dpkgOpts}`);
+        const env = 'DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true APT_LISTCHANGES_FRONTEND=none';
+        const opts = '-o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -o Dpkg::Options::="--force-all"';
+        await runCommand(`${env} apt-get install -f -y ${opts} < /dev/null`);
         res.json({ message: 'Broken dependencies fixed' });
     } catch (err) {
         res.status(500).json({ error: 'Fix failed', details: err.stderr || err.error?.message });

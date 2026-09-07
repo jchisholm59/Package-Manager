@@ -52,7 +52,8 @@ export default function App() {
       setPackages(pkgs.data);
       setUpdates(upds.data);
     } catch (err) {
-      notify('error', 'Failed to fetch system data');
+      const detail = err.response?.data?.details || err.message;
+      notify('error', `Failed to fetch data: ${detail}`);
     } finally {
       setLoading(false);
     }
