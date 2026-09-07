@@ -32,7 +32,7 @@ Docker isolates the application and provides all necessary dependencies.
    docker-compose up --build
    ```
 2. **Access**: Open [http://localhost:8300](http://localhost:8300).
-3. **Note**: The default configuration runs the container in `privileged` mode to allow package management within the container. To manage the **host** system, you must mount the host's `/var/lib/dpkg` and `/etc/apt` directories as volumes.
+3. **Host Management Mode**: The `docker-compose.yml` is pre-configured to mount the host's package databases. This allows the container to manage the actual packages on your physical machine. If you only want to manage the container's internal packages, remove the `volumes` section from `docker-compose.yml`.
 
 ### Option 2: PM2 (Standard Node.js Instance)
 Use PM2 to run the application as a background service on your Linux host.

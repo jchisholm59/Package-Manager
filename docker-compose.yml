@@ -6,4 +6,9 @@ services:
     ports:
       - "8300:8300"
     privileged: true # Required to run apt commands inside container effectively
+    volumes:
+      - /var/lib/dpkg:/var/lib/dpkg
+      - /etc/apt:/etc/apt
+      - /var/cache/apt:/var/cache/apt
+      - /var/lib/apt:/var/lib/apt
     restart: unless-stopped
