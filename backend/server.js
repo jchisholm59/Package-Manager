@@ -58,14 +58,13 @@ app.post('/api/install', async (req, res) => {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: 'Package name is required' });
     try {
-        // The "Ultimate" non-interactive command string
-        // 1. Force noninteractive frontend
-        // 2. Redirect stdin from /dev/null to prevent "unable to re-open stdin"
-        // 3. Force all dpkg options to stay with existing/default configs
-        // 4. Disable apt-listchanges via environment and config override
+        // Ultimate interaction shield:
+        // 1. Force noninteractive via ENV
+        // 2. Redirect stdin to /dev/null
+        // 3. Disable all pre-install hooks that might be mounted from host
         const env = 'DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true APT_LISTCHANGES_FRONTEND=none';
         const opts = '-o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -o Dpkg::Options::="--force-all" -o Dpkg::Pre-Install-Pkgs::=""';
-        const cmd = `sudo ${env} apt-get update || true; sudo ${env} apt-get install -y ${opts} ${name} < /dev/null`;
+        const cmd = `${env} apt-get update || true; ${env} apt-get install -y ${opts} ${name} < /dev/null`;
 
         await runCommand(cmd);
         res.json({ message: `Package ${name} installed successfully` });
@@ -79,7 +78,8 @@ app.post('/api/remove', async (req, res) => {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: 'Package name is required' });
     try {
-        await runCommand(`sudo apt-get remove -y ${name}`);
+        const env = 'DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true';
+        await runCommand(`${env} apt-get remove -y ${name} < /dev/null`);
         res.json({ message: `Package ${name} removed successfully` });
     } catch (err) {
         res.status(500).json({ error: `Failed to remove ${name}`, details: err.stderr });
