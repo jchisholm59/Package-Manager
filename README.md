@@ -74,3 +74,13 @@ Use PM2 to run the application as a background service on your Linux host.
 
 ## 📜 License
 MIT
+
+---
+
+## 💡 Pro-Tip: Stop Git Password Prompts
+If you are tired of entering your GitHub token every time you `git pull`, run this command to store your credentials locally:
+
+```bash
+git config --global credential.helper store
+```
+*The next time you pull, enter your username and token once. Git will remember them for all future operations.*

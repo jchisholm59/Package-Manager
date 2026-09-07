@@ -71,13 +71,21 @@ app.post('/api/install', async (req, res) => {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: 'Package name is required' });
     try {
-        // The "Ultimate" Compatibility Command:
-        // 1. Force noninteractive via ENV
-        // 2. Redirect stdin to /dev/null
-        // 3. Disable the sandbox user so it can read mounted host keys
+        // The "Trixie Compatibility" Command:
+        // 1. Force gpgv fallback to avoid Sequoia (sqv) permission issues
+        // 2. Disable sandbox for root-level access to mounted keys
+        // 3. Mask interactive triggers
         const env = 'DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true APT_LISTCHANGES_FRONTEND=none';
-        const opts = '-o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -o Dpkg::Options::="--force-all" -o Dpkg::Pre-Install-Pkgs::="" -o APT::Sandbox::User=root';
-        const cmd = `${env} apt-get update -o APT::Sandbox::User=root || true; ${env} apt-get install -y ${opts} ${name} < /dev/null`;
+        const opts = [
+            '-o Dpkg::Options::="--force-confdef"',
+            '-o Dpkg::Options::="--force-confold"',
+            '-o Dpkg::Options::="--force-all"',
+            '-o Dpkg::Pre-Install-Pkgs::=""',
+            '-o APT::Sandbox::User=root',
+            '-o Apt::Key::gpgvcommand=/usr/bin/gpgv' // FORCE TRADITIONAL GPG
+        ].join(' ');
+
+        const cmd = `${env} apt-get update ${opts} || true; ${env} apt-get install -y ${opts} ${name} < /dev/null`;
 
         await runCommand(cmd);
         res.json({ message: `Package ${name} installed successfully` });
